@@ -1,0 +1,78 @@
+> object mget python
+    import rospy
+    import json
+    from mhri_msgs.srv import ReadData, ReadDataRequest
+
+    if len(args) < 1:
+        rospy.logerr('Failed to read social_memory.. Check your sintax...')
+        return False
+
+    input_key = args[0].split('/')
+
+    recv_data = None
+    rospy.wait_for_service('read_data')
+    try:
+        read_memory = rospy.ServiceProxy('read_data', ReadData)
+
+        read_data = ReadDataRequest()
+        read_data.event_name = input_key[0]
+        read_data.data.append(input_key[1])
+
+        read_response = read_memory(read_data)
+        recv_data = json.loads(read_response.data)
+
+    except rospy.ServiceException, e:
+        rospy.logerr('Service call failed...')
+        return None
+
+    print(recv_data)
+
+    # if recv_data is number then return number format
+    try:
+        ret_data = int(recv_data[input_key[1]])
+        print("Int Data")
+        return ret_data
+    except ValueError:
+        ret_data = ecv_data[input_key[1]]
+        print("String Data")
+        return ret_data
+< object
+
+
+> object mset python
+    import rospy
+    import json
+    from mhri_msgs.srv import WriteData, WriteDataRequest
+
+    if len(args) < 1:
+        rospy.logerr('Failed to write social_memory.. Check your sintax...')
+        return False
+
+    input_key = args[0]
+    input_data = args[1:]
+
+    rospy.wait_for_service('write_data')
+    try:
+        write_memory = rospy.ServiceProxy('write_data', WriteData)
+
+        write_data = WriteDataRequest()
+        write_data.event_name = input_key
+
+        event_split = input_data[0].split(':')
+        write_data.event = '{"%s": %s}'%(event_split[0], event_split[1])
+
+        arg_data = {}
+        for data in input_data[1:]:
+            data_split = data.split(':')
+            arg_data[data_split[0]] = data_split[1]
+
+        # print(json.dumps(arg_data))
+        write_data.data = json.dumps(arg_data)
+        write_data.by = 'dialog_script'
+
+        write_response = write_memory(write_data)
+    except rospy.ServiceException, e:
+        rospy.logerr('Service call failed...')
+        return False
+    return True
+< object

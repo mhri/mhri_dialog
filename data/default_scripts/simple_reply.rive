@@ -1,0 +1,13 @@
++ 안녕
+- 안녕하세요.
+
++ *
+- 정해진 답변이 없습니다.
+
++ test1
+* if <call>mget speech_recognition/confidence</call> > 90 ==> 높은 신뢰도
+* if <call>mget speech_recognition/confidence</call> < 90 ==> 낮은 신뢰도
+- 테스트
+
++ test2
+- Result: <call>mset speech_recognition speech_recognized:false recognized_word:테스트1 confidence:95</call>
