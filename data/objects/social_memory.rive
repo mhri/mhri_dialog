@@ -30,11 +30,9 @@
     # if recv_data is number then return number format
     try:
         ret_data = int(recv_data[input_key[1]])
-        print("Int Data")
         return ret_data
     except ValueError:
-        ret_data = ecv_data[input_key[1]]
-        print("String Data")
+        ret_data = ecv_data[input_key[1]]        
         return ret_data
 < object
 
