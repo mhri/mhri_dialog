@@ -1,6 +1,9 @@
 + 안녕
 - 안녕하세요.
 
++ name *
+- <set name=<star>> hello. <get name>
+
 + *
 - 정해진 답변이 없습니다.
 
@@ -11,5 +14,34 @@
 
 
 
+
++ test11
+- {topic=sorry}
+
++ test12
+- {topic=hello}
+
+
+
 + test2
 - Result: <call>mset speech_recognition speech_recognized:false recognized_word:테스트1 confidence:95</call>
+
+
+> topic sorry
+    + [*] sorry [*]
+    - It's OK, I'll forgive you!{topic=random}
+
+    + *
+    - Nope, not until you apologize.
+    - Say you're sorry!
+    - Apologize!
+< topic
+
+
+> topic hello
+    + [*] hello [*]
+    - Hi! Nice to meet you.{topic=random}
+
+    + *
+    - Good Morning.
+< topic

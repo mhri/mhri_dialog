@@ -4,13 +4,14 @@
 import os
 import re
 import glob
+import json
 import threading
 
 import rospkg
 import rospy
 from rivescript import RiveScript, RiveScriptError
 
-from mhri_msgs.msg import Reply, RaiseEvents
+from mhri_msgs.msg import Reply, RaiseEvents, ScriptStatus
 from mhri_msgs.srv import ReloadWithResult, ReadData, WriteData
 
 UTF8 = True
@@ -31,6 +32,7 @@ class Dialog:
         self.bot.sort_replies()
 
         self.pub_reply = rospy.Publisher('reply', Reply, queue_size=10)
+        self.pub_debug_message = rospy.Publisher('script_status', ScriptStatus, queue_size=10)
         rospy.Subscriber('raise_events', RaiseEvents, self.handle_raise_events)
         self.srv_reload = rospy.Service('reload', ReloadWithResult, self.handle_reload_script)
 
@@ -79,7 +81,6 @@ class Dialog:
                 reply_msg.header.stamp = rospy.Time.now()
                 reply_msg.reply = reply
 
-                rospy.logwarn(last_match)
                 self.pub_reply.publish(reply_msg)
 
             except RiveScriptError, e:
@@ -99,12 +100,20 @@ class Dialog:
                     reply_msg.header.stamp = rospy.Time.now()
                     reply_msg.reply = reply
 
-                    rospy.logwarn(last_match)                    
                     self.pub_reply.publish(reply_msg)
 
                 except RiveScriptError, e:
                     rospy.logwarn('%s'%e)
                     continue
+
+
+        msg = ScriptStatus()
+        msg.last_match = last_match
+        msg.current_topic = self.bot.get_uservar('localuser', 'topic')
+        msg.topic_structure = json.dumps(self.bot._topics)
+        msg.user_vars = json.dumps(self.bot.get_uservars('localuser'))
+
+        self.pub_debug_message.publish(msg)
 
 
 if __name__ == '__main__':
