@@ -117,6 +117,6 @@ class Dialog:
 
 
 if __name__ == '__main__':
-	rospy.init_node('dialog_node', anonymous=False)
+	rospy.init_node('dialog', anonymous=False)
 	m = Dialog()
 	rospy.spin()
