@@ -11,7 +11,7 @@ import rospkg
 import rospy
 from rivescript import RiveScript, RiveScriptError
 
-from mhri_msgs.msg import Reply, RaiseEvents, ScriptStatus
+from mhri_msgs.msg import Reply, RaisingEvents, ScriptStatus
 from mhri_msgs.srv import ReloadWithResult, ReadData, WriteData
 
 UTF8 = True
@@ -33,7 +33,7 @@ class Dialog:
 
         self.pub_reply = rospy.Publisher('reply', Reply, queue_size=10)
         self.pub_debug_message = rospy.Publisher('script_status', ScriptStatus, queue_size=10)
-        rospy.Subscriber('raise_events', RaiseEvents, self.handle_raise_events)
+        rospy.Subscriber('raising_events', RaisingEvents, self.handle_raise_events)
         self.srv_reload = rospy.Service('reload', ReloadWithResult, self.handle_reload_script)
 
         rospy.loginfo('[%s] Initialzed'%rospy.get_name())
