@@ -1,0 +1,7 @@
+<launch>
+    <arg name="script_path" default="" />
+
+    <node name="dialog" type="dialog.py" pkg="mhri_dialog" output="screen">
+        <param name="script_path" value="$(arg script_path)" />
+    </node>
+</launch>

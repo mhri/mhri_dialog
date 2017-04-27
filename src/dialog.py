@@ -20,14 +20,20 @@ IGNORE_PUNCTATION = r'[.,!?;]'
 
 class Dialog:
     def __init__(self):
+        rospy.init_node('dialog', anonymous=False)
+
         self.lock = threading.Lock()
-        self._script_path = rospy.get_param('~script_path',
-            os.path.join(rospkg.RosPack().get_path('mhri_dialog'), 'data/default_scripts'))
+        self._script_path = rospy.get_param('~script_path', '')
+        self._default_script = os.path.join(rospkg.RosPack().get_path('mhri_dialog'), 'data/default_scripts/simple_reply.rive')
         self._object_path = os.path.join(rospkg.RosPack().get_path('mhri_dialog'), 'data/objects')
 
         self.bot = RiveScript(debug=DEBUG, utf8=UTF8)
         self.bot.unicode_punctuation = re.compile(IGNORE_PUNCTATION)
-        self.bot.load_directory(self._script_path)
+
+        if self._script_path != '':
+            self.bot.load_directory(self._script_path)
+
+        self.bot.load_file(self._default_script)
         self.bot.load_file(self._object_path + '/social_memory.rive')
         self.bot.sort_replies()
 
@@ -37,7 +43,7 @@ class Dialog:
         self.srv_reload = rospy.Service('reload', ReloadWithResult, self.handle_reload_script)
 
         rospy.loginfo('[%s] Initialzed'%rospy.get_name())
-
+        rospy.spin()
 
     def handle_reload_script(self, req):
         reload_current = False
@@ -57,7 +63,9 @@ class Dialog:
         if not reload_current:
             self._script_path = req.path
 
-        self.bot.load_directory(self._script_path)
+        if self._script_path != '':
+            self.bot.load_directory(self._script_path)
+        self.bot.load_file(self._default_script)
         self.bot.load_file(self._object_path + '/social_memory.rive')
         self.bot.sort_replies()
 
@@ -88,11 +96,12 @@ class Dialog:
                 return
         else:
             for event in msg.events:
-                input_event = unicode('e:'+i, 'utf-8')
+                event = event.replace('_', '-')
+                input_event = unicode('e:'+event, 'utf-8')
 
                 try:
                     self.lock.acquire()
-                    reply = self.bot.reply('localuser', unicode(msg.recognized_word, 'utf-8'), errors_as_replies=False)
+                    reply = self.bot.reply('localuser', input_event, errors_as_replies=False)
                     last_match = self.bot.last_match('localuser')
                     self.lock.release()
 
@@ -115,8 +124,5 @@ class Dialog:
 
         self.pub_debug_message.publish(msg)
 
-
 if __name__ == '__main__':
-	rospy.init_node('dialog', anonymous=False)
 	m = Dialog()
-	rospy.spin()
