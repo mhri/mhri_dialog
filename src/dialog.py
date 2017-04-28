@@ -105,24 +105,27 @@ class Dialog:
                     last_match = self.bot.last_match('localuser')
                     self.lock.release()
 
-                    reply_msg = Reply()
-                    reply_msg.header.stamp = rospy.Time.now()
-                    reply_msg.reply = reply
+                    if not last_match == '*':
+                        reply_msg = Reply()
+                        reply_msg.header.stamp = rospy.Time.now()
+                        reply_msg.reply = reply
 
-                    self.pub_reply.publish(reply_msg)
+                        self.pub_reply.publish(reply_msg)
+                    else:
+                        last_match = ''
 
                 except RiveScriptError, e:
                     rospy.logwarn('%s'%e)
                     continue
 
+        if last_match != '':
+            msg = ScriptStatus()
+            msg.last_match = last_match
+            msg.current_topic = self.bot.get_uservar('localuser', 'topic')
+            msg.topic_structure = json.dumps(self.bot._topics)
+            msg.user_vars = json.dumps(self.bot.get_uservars('localuser'))
 
-        msg = ScriptStatus()
-        msg.last_match = last_match
-        msg.current_topic = self.bot.get_uservar('localuser', 'topic')
-        msg.topic_structure = json.dumps(self.bot._topics)
-        msg.user_vars = json.dumps(self.bot.get_uservars('localuser'))
-
-        self.pub_debug_message.publish(msg)
+            self.pub_debug_message.publish(msg)
 
 if __name__ == '__main__':
 	m = Dialog()
