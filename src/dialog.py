@@ -55,7 +55,6 @@ class Dialog:
             return False
 
         self.lock.acquire()
-
         del self.bot
         self.bot = RiveScript(debug=DEBUG, utf8=UTF8)
         self.bot.unicode_punctuation = re.compile(IGNORE_PUNCTATION)
@@ -93,6 +92,7 @@ class Dialog:
 
             except RiveScriptError, e:
                 rospy.logwarn('%s'%e)
+                self.lock.release()
                 return
         else:
             for event in msg.events:
@@ -116,6 +116,7 @@ class Dialog:
 
                 except RiveScriptError, e:
                     rospy.logwarn('%s'%e)
+                    self.lock.release()
                     continue
 
         if last_match != '':
