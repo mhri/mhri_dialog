@@ -1,7 +1,9 @@
 <launch>
     <arg name="script_path" default="" />
+    <arg name="connect_with_social_mind" default="false"/>
 
     <node name="dialog" type="dialog.py" pkg="mhri_dialog" output="screen">
         <param name="script_path" value="$(arg script_path)" />
+        <param name="connect_with_social_mind" value="$(arg connect_with_social_mind)" />
     </node>
 </launch>

@@ -1,0 +1,8 @@
++ test1
+- <call>mget speech_recognition/recognized_word</call>
+
++ test2
+- <call>mget person_identification/hair_style[<get name>]</call>
+
++ test3
+- <call>mget persons/<get_name>/xyz[0]</call>

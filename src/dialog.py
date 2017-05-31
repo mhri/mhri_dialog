@@ -23,18 +23,33 @@ class Dialog:
         rospy.init_node('dialog', anonymous=False)
 
         self.lock = threading.Lock()
-        self._script_path = rospy.get_param('~script_path', '')
+        try:
+            self._script_path = rospy.get_param('~script_path')
+            self._script_path = os.path.expanduser(self._script_path)
+            self._script_path = os.path.abspath(self._script_path)
+            rospy.logdebug('Loading user scripts from %s ...'%self._script_path)
+        except KeyError:
+            self._script_path = ''
+            rospy.logwarn('Loading empty user scripts...')
+
         self._default_script = os.path.join(rospkg.RosPack().get_path('mhri_dialog'), 'data/default_scripts/simple_reply.rive')
         self._object_path = os.path.join(rospkg.RosPack().get_path('mhri_dialog'), 'data/objects')
 
         self.bot = RiveScript(debug=DEBUG, utf8=UTF8)
         self.bot.unicode_punctuation = re.compile(IGNORE_PUNCTATION)
 
+        # Load default scripts
+        self.bot.load_file(self._default_script)
+        enable_connection = rospy.get_param('~connect_with_social_mind', False)
+
+        if enable_connection:
+            rospy.loginfo('Wait for bringup social_mind...')
+            rospy.wait_for_service('social_events_memory/read_data')
+            self.bot.load_file(self._object_path + '/social_memory.rive')
+
+        # Load user scripts
         if self._script_path != '':
             self.bot.load_directory(self._script_path)
-
-        self.bot.load_file(self._default_script)
-        self.bot.load_file(self._object_path + '/social_memory.rive')
         self.bot.sort_replies()
 
         self.pub_reply = rospy.Publisher('reply', Reply, queue_size=10)
@@ -60,14 +75,19 @@ class Dialog:
         self.bot.unicode_punctuation = re.compile(IGNORE_PUNCTATION)
 
         if not reload_current:
-            self._script_path = req.path
+            self._script_path = os.path.expanduser(req.path)
+            self._script_path = os.path.abspath(self._script_path)
 
         if self._script_path != '':
             self.bot.load_directory(self._script_path)
-        self.bot.load_file(self._default_script)
-        self.bot.load_file(self._object_path + '/social_memory.rive')
-        self.bot.sort_replies()
 
+        self.bot.load_file(self._default_script)
+
+        enable_connection = rospy.get_param('~connect_with_social_mind', False)
+        if enable_connection:
+            self.bot.load_file(self._object_path + '/social_memory.rive')
+
+        self.bot.sort_replies()
         rospy.loginfo('Reload script [%s] is succeeded.'%self._script_path)
         self.lock.release()
 

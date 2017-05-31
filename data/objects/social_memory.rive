@@ -1,39 +1,64 @@
 > object mget python
+    import sys
     import rospy
     import json
-    from mhri_msgs.srv import ReadData, ReadDataRequest
+    from mhri_msgs.srv import ReadData, ReadDataRequest, GetDataList
 
     if len(args) < 1:
-        rospy.logerr('Failed to read social_memory.. Check your sintax...')
-        return False
+        rospy.logerr('Failed to execute mget... Check your sintax...')
+        return
 
-    input_key = args[0].split('/')
+    memory_data_list = {}
 
-    recv_data = None
-    rospy.wait_for_service('read_data')
+    # Read Data List from Memory
+    rospy.wait_for_service('social_events_memory/get_data_list')
+    read_srv = rospy.ServiceProxy('social_events_memory/get_data_list', GetDataList)
+    result = read_srv()
+    for i in json.loads(result.data_list).keys():
+        memory_data_list[i] = 'social_events_memory'
+
+    rospy.wait_for_service('environmental_memory/get_data_list')
+    read_srv = rospy.ServiceProxy('environmental_memory/get_data_list', GetDataList)
+    result = read_srv()
+    for i in json.loads(result.data_list).keys():
+        memory_data_list[i] = 'environmental_memory'
+
+    rospy.wait_for_service('system_events_memory/get_data_list')
+    read_srv = rospy.ServiceProxy('system_events_memory/get_data_list', GetDataList)
+    result = read_srv()
+    for i in json.loads(result.data_list).keys():
+        memory_data_list[i] = 'system_events_memory'
+
+    # Parsing input args
+    input_args = args[0].split('/')
     try:
-        read_memory = rospy.ServiceProxy('read_data', ReadData)
+        rospy.wait_for_service('%s/read_data'%memory_data_list[input_args[0]], timeout=1)
+        read_memory = rospy.ServiceProxy('%s/read_data'%memory_data_list[input_args[0]], ReadData)
 
-        read_data = ReadDataRequest()
-        read_data.event_name = input_key[0]
-        read_data.data.append(input_key[1])
+        req = ReadDataRequest()
+        req.perception_name = input_args[0]
+        req.query = '{}'
+        req.data.append(input_args[1])
 
-        read_response = read_memory(read_data)
-        recv_data = json.loads(read_response.data)
+        response = read_memory(req)
+        recv_data = json.loads(response.data)
 
-    except rospy.ServiceException, e:
-        rospy.logerr('Service call failed...')
+    except rospy.ServiceException:
+        e = sys.exc_info()[0]
+        rospy.logerr(e)
         return None
-
-    print(recv_data)
 
     # if recv_data is number then return number format
     try:
-        ret_data = int(recv_data[input_key[1]])
+        ret_data = int(recv_data[input_args[1]])
         return ret_data
     except ValueError:
-        ret_data = ecv_data[input_key[1]]
-        return ret_data
+        try:
+            ret_data = float(recv_data[input_args[1]])
+            return ret_data
+        except ValueError:
+            ret_data = recv_data[input_key[1]]
+            return ret_data
 < object
 
 
