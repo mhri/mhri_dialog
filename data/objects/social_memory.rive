@@ -46,7 +46,7 @@
     except rospy.ServiceException:
         e = sys.exc_info()[0]
         rospy.logerr(e)
-        return None
+        return 'Undefined'
 
     # if recv_data is number then return number format
     try:
@@ -91,7 +91,7 @@
 
         # print(json.dumps(arg_data))
         write_data.data = json.dumps(arg_data)
-        write_data.by = 'dialog_script'
+        write_data.by = 'dialog'
 
         write_response = write_memory(write_data)
     except rospy.ServiceException, e:
