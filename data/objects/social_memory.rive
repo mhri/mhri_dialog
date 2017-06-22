@@ -2,6 +2,7 @@
     import sys
     import rospy
     import json
+    import re
     from mhri_msgs.srv import ReadData, ReadDataRequest, GetDataList
 
     if len(args) < 1:
@@ -30,7 +31,41 @@
         memory_data_list[i] = 'system_events_memory'
 
     # Parsing input args
-    input_args = args[0].split('/')
+    read_single_data = False
+    # 인덱싱 태그가 있는지 찾는다.
+    index_tag_list = re.findall('\[(.+)\]', args[0])
+    if len(index_tag_list) > 1:
+        rospy.logwarn('syntax error in mget...')
+        return 'undefined'
+
+    # 없으면 싱글 데이터 읽기
+    if len(index_tag_list) == 0:
+        read_single_data = True
+
+    # 있으면 일단 인덱싱 태그를 없앤 입력 생성
+    input_arg_ori = args[0]
+    for i in index_tag_list:
+        input_arg_ori = input_arg_ori.replace('[%s]'%i, '')
+
+    # print("TESTETT", input_arg_ori)
+
+    # 숫자로된 인덱스인가? 아니면 이름으로 된 인덱스인가?
+    is_number_index = False
+    number_index = -1
+    index_name = ''
+    index_value = ''
+
+    if not read_single_data:
+        split_tags = index_tag_list[0].split(':')
+
+        if len(split_tags) == 1:
+            is_number_index = True
+            number_index = int(split_tags[0])
+        else:
+            index_name = split_tags[0]
+            index_value = rs.get_uservar('localuser', split_tags[1])
+
+    input_args = input_arg_ori.split('/')
     try:
         rospy.wait_for_service('%s/read_data'%memory_data_list[input_args[0]], timeout=1)
         read_memory = rospy.ServiceProxy('%s/read_data'%memory_data_list[input_args[0]], ReadData)
@@ -40,25 +75,40 @@
         req.query = '{}'
         req.data.append(input_args[1])
 
+        if not is_number_index and not read_single_data:
+            req.data.append(index_name)
+
         response = read_memory(req)
         recv_data = json.loads(response.data)
 
     except rospy.ServiceException:
         e = sys.exc_info()[0]
         rospy.logerr(e)
-        return 'Undefined'
+        return 'undefined'
 
     # if recv_data is number then return number format
-    try:
-        ret_data = int(recv_data[input_args[1]])
-        return ret_data
-    except ValueError:
+    if read_single_data:
         try:
-            ret_data = float(recv_data[input_args[1]])
+            ret_data = int(recv_data[input_args[1]])
             return ret_data
         except ValueError:
-            ret_data = recv_data[input_key[1]]
-            return ret_data
+            try:
+                ret_data = float(recv_data[input_args[1]])
+                return ret_data
+            except ValueError:
+                ret_data = recv_data[input_key[1]]
+                return ret_data
+    else:
+        if is_number_index:
+            ret_data = recv_data[input_args[1]]
+            return ret_data[number_index]
+        else:
+            print(recv_data, input_args[1])
+            ret_data = recv_data[input_args[1]]
+            print(ret_data)
+            print(index_name, index_value)
+            # return ret_data[recv_data[index_name].index(index_value)]
+            return ret_data[0]
 < object
 
 
