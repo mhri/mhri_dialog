@@ -103,12 +103,12 @@
             ret_data = recv_data[input_args[1]]
             return ret_data[number_index]
         else:
-            print(recv_data, input_args[1])
             ret_data = recv_data[input_args[1]]
-            print(ret_data)
-            print(index_name, index_value)
             # return ret_data[recv_data[index_name].index(index_value)]
-            return ret_data[0]
+            if ret_data[0] == '':
+                return 'undefined'
+            else:                
+                return ret_data[0]
 < object
 
 
