@@ -39,7 +39,9 @@ class Dialog:
         self.bot.unicode_punctuation = re.compile(IGNORE_PUNCTATION)
 
         # Load default scripts
-        self.bot.load_file(self._default_script)
+        self.loading_default_script = rospy.get_param('~loading_default_script')
+        if self.loading_default_script:
+            self.bot.load_file(self._default_script)
         enable_connection = rospy.get_param('~connect_with_social_mind', False)
 
         if enable_connection:
@@ -81,7 +83,8 @@ class Dialog:
         if self._script_path != '':
             self.bot.load_directory(self._script_path)
 
-        self.bot.load_file(self._default_script)
+        if self.loading_default_script:
+            self.bot.load_file(self._default_script)
 
         enable_connection = rospy.get_param('~connect_with_social_mind', False)
         if enable_connection:
@@ -90,7 +93,6 @@ class Dialog:
         self.bot.sort_replies()
         rospy.loginfo('Reload script [%s] is succeeded.'%self._script_path)
         self.lock.release()
-
         return True
 
 
