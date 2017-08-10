@@ -6,14 +6,19 @@
     import time
     from mhri_msgs.srv import ReadData, ReadDataRequest, GetDataList
 
-    if len(args) < 1:
+    return_data = True
+    target_variable_name = ''
+
+    if len(args) < 1 and len(args) > 2:
         rospy.logerr('Failed to execute mget... Check your sintax...')
         return
+    if len(args) == 2:
+        return_type = False
+        target_variable_name = args[1]
 
-    start_time = time.time()
+    start_time = time.time()    # For Debugging
 
     memory_data_list = {}
-
     # Read Data List from Memory
     rospy.wait_for_service('social_events_memory/get_data_list')
     read_srv = rospy.ServiceProxy('social_events_memory/get_data_list', GetDataList)
@@ -49,8 +54,6 @@
     input_arg_ori = args[0]
     for i in index_tag_list:
         input_arg_ori = input_arg_ori.replace('[%s]'%i, '')
-
-    # print("TESTETT", input_arg_ori)
 
     # 숫자로된 인덱스인가? 아니면 이름으로 된 인덱스인가?
     is_number_index = False
@@ -93,35 +96,55 @@
     if read_single_data:
         try:
             ret_data = int(recv_data[input_args[1]])
-            print("%s seconds"%(time.time() - start_time))
-            return ret_data
+            print("%s seconds"%(time.time() - start_time))     # For Debugging
+
+            if not return_type:
+                rs.set_uservar('localuser', target_variable_name, ret_data)
+                return ''
+            else: return ret_data
         except ValueError:
             try:
                 ret_data = float(recv_data[input_args[1]])
-                print("%s seconds"%(time.time() - start_time))
-                return ret_data
+                print("%s seconds"%(time.time() - start_time))     # For Debugging
+
+                if not return_type:
+                    rs.set_uservar('localuser', target_variable_name, ret_data)
+                    return ''
+                else: return ret_data
             except ValueError:
                 ret_data = recv_data[input_key[1]]
-                print("%s seconds"%(time.time() - start_time))
-                return ret_data
+                print("%s seconds"%(time.time() - start_time))     # For Debugging
+
+                if not return_type:
+                    rs.set_uservar('localuser', target_variable_name, ret_data)
+                    return ''
+                else: return ret_data
     else:
         if is_number_index:
             ret_data = recv_data[input_args[1]]
             print("%s seconds"%(time.time() - start_time))
-            return ret_data[number_index]
+
+            if not return_type:
+                rs.set_uservar('localuser', target_variable_name, ret_data[number_index])
+                return ''
+            else: return ret_data[number_index]
         else:
             ret_data = recv_data[input_args[1]]
+
+            print "RET_TYPE:", ret_data
+
             # return ret_data[recv_data[index_name].index(index_value)]
             if ret_data[0] == '':
-                print("%s seconds"%(time.time() - start_time))
-                return 'undefined'
+                print("%s seconds"%(time.time() - start_time))     # For Debugging
+                if not return_type:
+                    rs.set_uservar('localuser', target_variable_name, 'undefined')
+                else: return 'undefined'
             else:
                 print("%s seconds"%(time.time() - start_time))
                 if input_args[0] == 'person_identification' and input_args[1] == 'name':
-                    print(ret_data[0])
                     rs.set_uservar('localuser', 'name', ret_data[0])
                 else:
-                    return ret_data[0]
+                    return ret_data[0]            
 < object
 
 
