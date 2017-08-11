@@ -130,8 +130,10 @@
             else: return ret_data[number_index]
         else:
             ret_data = recv_data[input_args[1]]
+            print("RET_TYPE:", ret_data)
 
-            print "RET_TYPE:", ret_data
+            #
+            # {u'name':[u'undefined'], u'session_face_id':[u'1150505050']}
 
             # return ret_data[recv_data[index_name].index(index_value)]
             if ret_data[0] == '':
@@ -141,10 +143,16 @@
                 else: return 'undefined'
             else:
                 print("%s seconds"%(time.time() - start_time))
-                if input_args[0] == 'person_identification' and input_args[1] == 'name':
-                    rs.set_uservar('localuser', 'name', ret_data[0])
+
+                value_data = ret_data[input_args[1]][ret_data[index_name].index(index_value)]
+                if not return_type:
+                    rs.set_uservar('localuser', input_args[1], value_data)
+                    return ''
                 else:
-                    return ret_data[0]            
+                    return value_data
+
+                # if input_args[0] == 'person_identification' and input_args[1] == 'name':
+                #     rs.set_uservar('localuser', 'name', ret_data[0])                
 < object
 
 

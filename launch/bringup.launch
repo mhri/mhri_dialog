@@ -1,6 +1,6 @@
 <launch>
     <arg name="script_path" default="" />
-    <arg name="connect_with_social_mind" default="false"/>
+    <arg name="connect_with_social_mind" default="true"/>
     <arg name="loading_default_script" default="false" />
 
     <node name="dialog" type="dialog.py" pkg="mhri_dialog" output="screen">
