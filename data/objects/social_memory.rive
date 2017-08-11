@@ -87,6 +87,8 @@
         response = read_memory(req)
         recv_data = json.loads(response.data)
 
+    except KeyError:
+        return "undefined"
     except rospy.ServiceException:
         e = sys.exc_info()[0]
         rospy.logerr(e)
@@ -112,7 +114,7 @@
                     return ''
                 else: return ret_data
             except ValueError:
-                ret_data = recv_data[input_key[1]]
+                ret_data = recv_data[input_args[1]]
                 print("%s seconds"%(time.time() - start_time))     # For Debugging
 
                 if not return_type:
@@ -152,7 +154,7 @@
                     return value_data
 
                 # if input_args[0] == 'person_identification' and input_args[1] == 'name':
-                #     rs.set_uservar('localuser', 'name', ret_data[0])                
+                #     rs.set_uservar('localuser', 'name', ret_data[0])
 < object
 
 
