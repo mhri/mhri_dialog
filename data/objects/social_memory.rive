@@ -1,3 +1,56 @@
+#------------------------------------------------------------
+# RS 엔진의 User Variabble을 읽어오거나 User Variable간 값을 Assign
+#
+# 용례 1) User Variable 값을 읽어오기
+# <call>mvar face_id</call>
+#
+# 용례 2) User Variable 간 값 Assignment (face_id의 값을 session_face_id로 저장)
+# <call>mvar face_id session_face_id</call>
+#------------------------------------------------------------
+> object mvar python
+    import rospy
+
+    print(">>>> mvar ")
+    for arg in args:
+        print("      ", arg)
+    print("<<<< mget")
+
+    if len(args) == 1:
+        print("[MVAR]: ", args[0], ' = ', rs.get_uservar('localuser', args[0]))
+        val = rs.get_uservar('localuser', args[0])
+        if val == '':
+            return 'undefined'
+        else:
+            return val
+    elif len(args) == 2:
+        val = 'undefined'
+        if args[0] != 'undefined':
+            val = rs.get_uservar('localuser', args[0])
+        if val == '':
+            val = 'undefined'
+        print("[MVAR] Assign ", args[0], "(", val, ") to ", args[1])
+        rs.set_uservar('localuser', args[1], val)
+    else:
+        print('[MVAR] No of arguments for mvar should be 1 or 2')
+        return 'undefined'
+< object
+
+#------------------------------------------------------------
+# Social Mind의 데이터를 읽어서 RS 엔진의 User Variable에 저장
+#
+# 용례 1) Social Mind로부터 값을 읽어오기
+# <call>mget person_identification/session_face_id[0]</call>
+#
+# 용례 2) Social Mind로부터 값을 읽어서 User Variable에 저장
+# <call>mget person_identification/session_face_id[0] face_id</call>
+#
+# 용례 3) 값을 인덱스로 하여 Social Mind로부터 값을 읽어오기
+# <call>mget person_identification/name[session_face_id:face_id]</call>
+#
+# 용례 4) 값을 인덱스로 하여 Social Mind로부터 값을 읽어와서 User Variable에 저장
+# <call>mget person_identification/name[session_face_id:face_id] name</call>
+#
+#------------------------------------------------------------
 > object mget python
     import sys
     import rospy
@@ -6,7 +59,7 @@
     import time
     from mhri_msgs.srv import ReadData, ReadDataRequest, GetDataList
 
-    return_data = True
+    return_type = True
     target_variable_name = ''
 
     if len(args) < 1 and len(args) > 2:
@@ -17,6 +70,11 @@
         target_variable_name = args[1]
 
     start_time = time.time()    # For Debugging
+
+    print(">>>> mget ")
+    for arg in args:
+        print("      ", arg)
+    print("<<<< mget")
 
     memory_data_list = {}
     # Read Data List from Memory
@@ -70,12 +128,16 @@
         else:
             index_name = split_tags[0]
             index_value = rs.get_uservar('localuser', split_tags[1])
-
+            '''
+            print("RS INDEX_VALUE: ", split_tags[1], " = ", index_value)
+            '''
+            
     input_args = input_arg_ori.split('/')
+
     try:
         rospy.wait_for_service('%s/read_data'%memory_data_list[input_args[0]], timeout=1)
         read_memory = rospy.ServiceProxy('%s/read_data'%memory_data_list[input_args[0]], ReadData)
-
+        print("READ_MEMORY: ", '%s/read_data'%memory_data_list[input_args[0]])
         req = ReadDataRequest()
         req.perception_name = input_args[0]
         req.query = '{}'
@@ -83,16 +145,21 @@
 
         if not is_number_index and not read_single_data:
             req.data.append(index_name)
-
+        print("READ_MEMORY QUERY: ", req, '===QUERY END===')
         response = read_memory(req)
         recv_data = json.loads(response.data)
-
-    except KeyError:
-        return "undefined"
+        print("RECV_DATA: ", recv_data)
     except rospy.ServiceException:
         e = sys.exc_info()[0]
         rospy.logerr(e)
         return 'undefined'
+
+    if len(recv_data) == 0:
+        if target_variable_name == '':
+            return 'undefined'
+        else:
+            rs.set_uservar('localuser', target_variable_name, 'undefined')
+            return ''
 
     # if recv_data is number then return number format
     if read_single_data:
@@ -102,6 +169,7 @@
 
             if not return_type:
                 rs.set_uservar('localuser', target_variable_name, ret_data)
+                #print("RS SET4:", target_variable_name, ret_data)
                 return ''
             else: return ret_data
         except ValueError:
@@ -111,87 +179,106 @@
 
                 if not return_type:
                     rs.set_uservar('localuser', target_variable_name, ret_data)
+                    print("RS SET3:", target_variable_name, ret_data)
                     return ''
                 else: return ret_data
             except ValueError:
-                ret_data = recv_data[input_args[1]]
-                print("%s seconds"%(time.time() - start_time))     # For Debugging
+                ret_data = recv_data[input_key[1]]
+                #print("%s seconds"%(time.time() - start_time))     # For Debugging
 
                 if not return_type:
                     rs.set_uservar('localuser', target_variable_name, ret_data)
+                    print("RS SET2:", target_variable_name, ret_data)
                     return ''
                 else: return ret_data
     else:
         if is_number_index:
             ret_data = recv_data[input_args[1]]
-            print("%s seconds"%(time.time() - start_time))
+
+            #print("INPUT_ARGS[1]: ", input_args[1])
+            #print("%s seconds"%(time.time() - start_time))
 
             if not return_type:
-                rs.set_uservar('localuser', target_variable_name, ret_data[number_index])
-                return ''
+                if type(ret_data) == list:
+                    rs.set_uservar('localuser', target_variable_name, ret_data[number_index])
+                    print("RS SET1:", target_variable_name, ret_data[number_index])
+                    return ''
+                else:
+                    rs.set_uservar('localuser', target_variable_name, ret_data)
+                    print("RS SET1.1:", target_variable_name, ret_data)
+                    return ''
             else: return ret_data[number_index]
         else:
             ret_data = recv_data[input_args[1]]
-            print("RET_TYPE:", ret_data)
 
-            #
-            # {u'name':[u'undefined'], u'session_face_id':[u'1150505050']}
+            #print("INPUT_ARGS[1]: ", input_args[1])
+            #print("RET_TYPE:", ret_data)
 
             # return ret_data[recv_data[index_name].index(index_value)]
             if ret_data[0] == '':
                 print("%s seconds"%(time.time() - start_time))     # For Debugging
                 if not return_type:
                     rs.set_uservar('localuser', target_variable_name, 'undefined')
+                    print("RS SET7:", target_variable_name, 'undefined')
                 else: return 'undefined'
             else:
-                print("%s seconds"%(time.time() - start_time))
-
-                value_data = ret_data[input_args[1]][ret_data[index_name].index(index_value)]
-                if not return_type:
-                    rs.set_uservar('localuser', input_args[1], value_data)
-                    return ''
-                else:
-                    return value_data
-
-                # if input_args[0] == 'person_identification' and input_args[1] == 'name':
-                #     rs.set_uservar('localuser', 'name', ret_data[0])
+                #print("%s seconds"%(time.time() - start_time))
+                rs.set_uservar('localuser', target_variable_name, ret_data[0])
+                print("RS SET8:", target_variable_name, ret_data[0])
 < object
 
 
+#------------------------------------------------------------
+# 데이터를 프레임워크로 전달 (/mhri/mset 토픽으로 MSetInfo 메시지 전송)
+#
+# 용례 1) 사용자가 말한 발화 내용을 프레임워크로 전달
+# <call>mset session_face_id name <star></call>
+#
+# - args[0]: RS의 User Variable로 간주하고 값을 읽어옴 (예: 사람의 세션 아이디)
+# - args[1]: 속성 이름 (예: name은 사람의 이름)
+# - args[2]: 속성의 값 (예: '고대성')
+#
+# mset은 위 값을 조합하여 ('1035452345/name', '고대성') 형식의 데이터를
+# MSetInfo 메시지에 담아 /mhri/mset 토픽으로 보내서 프레임워크에 전달
+#
+#------------------------------------------------------------
 > object mset python
     import rospy
     import json
     from mhri_msgs.srv import WriteData, WriteDataRequest
+    from perception_common.msg import MSetInfo
 
-    if len(args) < 1:
-        rospy.logerr('Failed to write social_memory.. Check your sintax...')
+    print(">>>> mset ")
+    for arg in args:
+        print("      ", arg)
+    print("<<<< mset")
+
+    if len(args) != 3:
+        rospy.logerr('RS Object: Check your sintax... <call>mset arg1 arg2 arg3</call>')
         return False
 
-    input_key = args[0]
-    input_data = args[1:]
+    subj_val = rs.get_uservar('localuser', args[0])
 
-    rospy.wait_for_service('write_data')
-    try:
-        write_memory = rospy.ServiceProxy('write_data', WriteData)
+    '''
+    print("RS mset:")
+    for arg in args:
+        print("   ", arg)
+    print("RS mset ", rs.get_uservar('localuser', args[0]), ' = ', args[2])
+    '''
 
-        write_data = WriteDataRequest()
-        write_data.event_name = input_key
+    # set local variable    
+    #rs.set_uservar('localuser', args[1], args[2])
 
-        event_split = input_data[0].split(':')
-        write_data.event = '{"%s": %s}'%(event_split[0], event_split[1])
-
-        arg_data = {}
-        for data in input_data[1:]:
-            data_split = data.split(':')
-            arg_data[data_split[0]] = data_split[1]
-
-        # print(json.dumps(arg_data))
-        write_data.data = json.dumps(arg_data)
-        write_data.by = 'dialog'
-
-        write_response = write_memory(write_data)
-    except rospy.ServiceException, e:
-        rospy.logerr('Service call failed...')
-        return False
-    return True
+    # publis new knowledge
+    rate = rospy.timer.Rate(5)
+    pub = rospy.Publisher('/mhri/mset', MSetInfo, queue_size=1)
+    mset_info = MSetInfo()
+    mset_info.key = subj_val + '/' + args[1]
+    if type(args[2]) == unicode:
+        args[2] = args[2].encode('utf-8')
+    mset_info.value = args[2]
+    rate.sleep()
+    pub.publish(mset_info)
+    print("RS mset: publised key = ", mset_info.key)
+    print("RS mset: publised value = ", mset_info.value)
 < object
